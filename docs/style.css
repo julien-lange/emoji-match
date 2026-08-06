@@ -1,0 +1,290 @@
+/* A single fixed layout: a thin header, the two columns filling everything
+   left over, and a row of big buttons. Nothing scrolls — a finger dragging on
+   this page is always drawing a line, never panning.
+
+   Same palette as its sibling the maze, so the two apps look like one thing. */
+
+:root {
+  --paper: #fbf7ee;
+  --ink: #2f3542;
+  --trail: #ff6b35;
+  --gold: #f2b705;
+  --good: #2ea44f;
+  --bad: #e5484d;
+  --face: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overscroll-behavior: none;          /* no pull-to-refresh mid-round */
+  background: var(--ink);
+  color: var(--paper);
+  overflow: hidden;                   /* confetti must never grow the page */
+  font: 600 16px/1.2 var(--face);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  font-size: 20px;
+}
+#score { margin-left: auto; color: var(--gold); font-size: 19px; letter-spacing: 1px; }
+
+/* touch-action:none is what stops the browser treating a drag as a scroll or a
+   pinch and swallowing the pointer events. */
+#stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Pictures on the left, words on the right, one row each. The gap between the
+   columns is the room the lines are drawn in, so it is wide enough to see a
+   line cross it and no wider. */
+#cols {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* Three shares: a square for the picture, a gap wide enough that a line
+     drawn across it is plainly a line, and everything else for the word. */
+  grid-template-columns: 30% 1fr;
+  column-gap: 14%;
+  padding: 6px 16px 10px;
+}
+
+.col {
+  display: grid;
+  grid-template-rows: repeat(var(--n, 3), 1fr);
+  row-gap: clamp(8px, 2.2vh, 18px);
+  min-height: 0;
+}
+
+/* Capped and centred rather than simply filling the row: at two pairs a card
+   that stretched the whole way would be a hand-sized slab of empty paper. */
+/* height:100% rather than the grid's own stretch, because align-self:center
+   turns stretching off — and without it a capped card would sit at the top of
+   its row instead of in the middle of it. */
+.tile {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  height: 100%;
+  max-height: 26vh;
+  position: relative;
+  border-radius: 18px;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1;
+  transition: background .18s, opacity .18s, transform .18s;
+}
+
+/* Square, like a flashcard. A picture card holds one glyph, so any height past
+   its own width is space the line has to cross for nothing. */
+.tile.pic {
+  height: auto;                       /* let the ratio set it, not the row */
+  aspect-ratio: 1;
+  max-height: min(26vh, 100%);
+  font-size: var(--pic-size, 40px);
+}
+.tile.word {
+  font-size: var(--word-size, 32px);
+  font-weight: 800;
+  letter-spacing: .005em;
+  padding: 0 4%;
+}
+
+/* Matched. The tick is the whole of the praise, exactly as in the terminal
+   game: no words, no exclamation marks. */
+.tile.done { background: #dff2e2; opacity: .92; }
+.tile.done::after {
+  content: "✔";
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--good);
+}
+
+/* Picked up by a tap rather than a drag, and waiting for its partner. */
+.tile.picked { background: #fff3d6; transform: scale(1.04); }
+
+.tile.shake { animation: shake .42s ease-in-out; }
+@keyframes shake {
+  10%, 90% { transform: translateX(-4px); }
+  30%, 70% { transform: translateX(6px); }
+  50% { transform: translateX(-6px); }
+}
+
+/* The lines. Above the tiles so a line lands on the card rather than under it,
+   and never in the way of a finger. */
+/* width and height explicitly, not just inset: a canvas is a replaced element,
+   so with `width: auto` it is laid out at its intrinsic size — the pixel count
+   in its width attribute, which is the backing store and twice the box we want
+   on a retina screen. */
+#ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Negative feedback in full: a face, and nothing else. It does not say which
+   pair was wrong. */
+#oops {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(96px, 34vmin, 260px);
+  line-height: 1;
+  /* Dimmed rather than hidden: the line they drew stays faintly visible behind
+     the face, so the answer being reacted to is the one they can still see. */
+  background: rgba(47, 53, 66, .62);
+  pointer-events: none;
+  animation: pop .18s ease-out;
+}
+#oops[hidden] { display: none; }
+
+#cheer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;               /* never blocks the next drag */
+}
+#cheer[hidden] { display: none; }
+
+/* No card behind it and no scrim: the lines they have just drawn are the prize,
+   and covering them up to say well done would be a poor trade. Big enough to
+   answer the sad face, which is the only other thing this game ever says. */
+#cheer-card {
+  animation: pop .45s cubic-bezier(.2, 1.5, .4, 1);
+  filter: drop-shadow(0 10px 26px rgba(47, 53, 66, .85));
+}
+#cheer-card span { font-size: clamp(110px, 38vmin, 300px); line-height: 1; }
+
+@keyframes pop {
+  from { transform: scale(.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.confetti {
+  position: absolute;
+  top: -8%;
+  font-size: 26px;
+  animation: fall linear forwards;
+  pointer-events: none;
+}
+@keyframes fall {
+  to { transform: translateY(115vh) rotate(540deg); opacity: .2; }
+}
+
+/* A spark is a confetti bit that stays put: one small burst out of the word
+   that was just matched, so the reward lands where the child is looking. */
+.spark {
+  position: absolute;
+  font-size: 20px;
+  pointer-events: none;
+  animation: spark .8s ease-out forwards;
+}
+@keyframes spark {
+  from { transform: translate(0, 0) scale(.4); opacity: 1; }
+  to   { transform: translate(var(--dx), var(--dy)) scale(1.15); opacity: 0; }
+}
+
+/* The grown-up's row: how many pairs, what this round is, and the way out of
+   anything that has gone wrong for good. */
+#footnote {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 0;
+}
+
+#howmany { display: flex; gap: 3px; }
+#howmany button {
+  width: 20px; height: 18px;
+  padding: 0;
+  border: 1px solid rgba(251, 247, 238, .18);
+  border-radius: 5px;
+  background: none;
+  color: rgba(251, 247, 238, .38);
+  font: 500 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+#howmany button[aria-pressed="true"] { background: rgba(251, 247, 238, .22); color: var(--paper); }
+
+#info {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font: 500 10px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .02em;
+  color: rgba(251, 247, 238, .45);
+}
+
+/* Small, faint, and nowhere near the row of big buttons: a child sweeping a
+   hand across the bottom of the screen should never land on it. It asks before
+   it acts as well — down here a wrong tap costs more than a wrong match. */
+#wipe {
+  flex: none;
+  padding: 3px 6px;
+  border: 1px solid rgba(251, 247, 238, .18);
+  border-radius: 6px;
+  background: none;
+  color: rgba(251, 247, 238, .38);
+  font: 500 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#controls {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  padding: 8px 16px 16px;
+}
+
+#controls button {
+  flex: 1;
+  min-height: 56px;                   /* comfortably bigger than a fingertip */
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 16px;
+  background: rgba(251, 247, 238, .12);
+  color: var(--paper);
+  font: inherit;
+}
+#controls button span { font-size: 26px; line-height: 1; }
+#controls button:active { background: rgba(251, 247, 238, .28); }
+/* Nothing to take back yet: still there, still the same size, plainly not for
+   pressing — the row must not shuffle about under a finger already moving. */
+#controls button:disabled { opacity: .3; }
+#controls #next.ready { background: var(--gold); color: var(--ink); animation: nudge 1.2s ease-in-out infinite; }
+
+@keyframes nudge {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+}

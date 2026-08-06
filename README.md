@@ -1,16 +1,24 @@
 # Emoji Match
 
-A tiny terminal game for 4–5 year olds. Each round shows three pictures and
-three words, shuffled independently. The child types a number and a letter —
-`1a`, or `a1`, whichever order they reach for — then presses ENTER, so they
-practise reading *and* find their way around a keyboard.
+A tiny game for 4–5 year olds. Each round shows three pictures and three words,
+shuffled independently, and the child pairs them up.
 
-Everything is drawn at double size by default, emoji included.
+It comes two ways, from one set of rules:
+
+- **In a terminal**, typing a number and a letter — `1a`, or `a1`, whichever
+  order they reach for — so they practise reading *and* find their way around a
+  keyboard. Everything is drawn at double size, emoji included.
+- **On a phone**, drawing a line from each picture to its word with a finger.
+
+`pairs.go` and `round.go` are shared between the two; `main.go` is the terminal
+half and `wasm.go` the browser half, each fenced off from the other by a build
+tag.
 
 ## Run it
 
 ```sh
 go run .          # or: go build -o emoji-match . && ./emoji-match
+make serve        # the phone version, at http://localhost:8732/
 ```
 
 ## Options
@@ -22,6 +30,76 @@ go run .          # or: go build -o emoji-match . && ./emoji-match
 | `-rounds 0` | stop after N rounds; 0 plays until you type `q` |
 | `-nocolor` | plain text (also honours `NO_COLOR`) |
 | `-seed 0` | fix the randomness, handy for testing |
+| `-pairs FILE` | write the word pool to FILE as JSON and exit (see below) |
+
+## The phone version
+
+`docs/` is a self-contained static site: no build step, no framework, no
+network calls beyond its own files.
+
+    make            # rebuild docs/match.wasm and docs/pairs.json
+    make serve      # then open http://localhost:8732/
+
+Pictures down the left, words down the right, and a line drawn between them
+with a finger. A card can also be tapped and its partner tapped after it —
+small children reach for a tap before they reach for a drag, and both mean the
+same answer.
+
+The feedback is the terminal game's, moved to a screen, and there are still only
+three answers it can give:
+
+- **Right** — a tick on both cards, the line locks in a colour of its own, and a
+  few sparks come out of the word. Lines are coloured by the word they land on,
+  so two of them crossing are still two lines.
+- **Wrong** — the screen dims to a single 🙁 for a moment, with the line they
+  drew showing faintly red behind it. It does not say which pair was wrong.
+- **Neither** — a line let go over empty space, or over a card already ticked,
+  draws no reaction at all. That was never an answer.
+
+The only words on screen are the ones being read. Everything else is a glyph:
+🎈 and a star count in the header, ↺ and → for the buttons. The small
+monospace line above the buttons is for you, not for them — which round this is,
+how many pairs, and where the round came from.
+
+Leave a round untouched for a few seconds and rings pulse out of the pictures
+still waiting, which is the whole of the tutorial.
+
+### Where the rounds come from
+
+`match.wasm` — the same Go generator the terminal game uses, compiled with
+`GOOS=js GOARCH=wasm`. It exports one function:
+
+```js
+window.emojiRound(n, seed)   // -> JSON: {n, emojis, words, answer}
+```
+
+`answer[i]` is where emoji `i`'s word sits in `words`, so the page can mark an
+answer without knowing anything about the pool. The seed is for the tests; the
+page leaves it out and gets the session picker, which is what keeps a pair from
+coming round again two turns later. Nothing is generated ahead of time, so the
+game never runs out.
+
+Beside it, `pairs.json` carries the pool as plain text — `make pairs`, which is
+`go run . -pairs docs/pairs.json`. A 2.8 MB binary is a big thing to depend on
+absolutely, and a child tapping a home-screen icon on a train should not be met
+with a blank page, so `app.js` keeps a small fallback picker for that one case.
+It also draws the very first round of a session while the wasm is still
+downloading, which is why the game starts instantly. `test/player.js` holds it
+to the same rules the Go generator keeps.
+
+The footnote line says which one is in use: `wasm` or `json`.
+
+### Publishing to GitHub Pages
+
+Push, then in **Settings → Pages** set the source to **main / docs**. Nothing
+else is needed: Pages serves `.wasm` with the right `application/wasm` MIME
+type, and `.nojekyll` keeps Jekyll's hands off the directory.
+
+The page installs to a phone home screen ("Add to Home Screen") and works with
+no signal afterwards, because `sw.js` caches everything on first visit. **That
+cache is why you must bump `VERSION` in `docs/sw.js` whenever you republish a
+new wasm build or a changed pool** — otherwise phones will keep serving the old
+one.
 
 ## Big text
 
@@ -99,9 +177,19 @@ but an 11-letter one needs 82.
 
 Rounds never repeat a pair used in the last 15 draws, and the three words in a
 round always start with different letters — so a child who can only sound out
-the first letter still has a way in.
+the first letter still has a way in. Both halves of the game get this from
+`round.go`, so a pair added here turns up on the phone as well — after a
+`make`, which rebuilds the wasm and rewrites `pairs.json` from the same slice.
+
+## Tests
 
 ```sh
-go test ./...
+make check      # go vet, go test, build, and the two browser suites
 ```
+
+`test/wasm.js` loads `docs/match.wasm` the way the page does and checks what
+comes back; `test/player.js` does the same for the fallback generator, which it
+slices out of the real `docs/app.js` rather than copying — there is no second
+set of rules to drift out of step with the one the phone runs. Both go through
+the same `checkRound`, so the two generators are held to one standard.
 

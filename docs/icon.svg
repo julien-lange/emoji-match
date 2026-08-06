@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Emoji Match">
+  <rect width="512" height="512" rx="112" fill="#2f3542"/>
+  <rect x="72" y="112" width="120" height="120" rx="30" fill="#fbf7ee"/>
+  <rect x="72" y="280" width="120" height="120" rx="30" fill="#fbf7ee"/>
+  <rect x="320" y="112" width="120" height="120" rx="30" fill="#fbf7ee"/>
+  <rect x="320" y="280" width="120" height="120" rx="30" fill="#fbf7ee"/>
+  <path d="M192 172C240 172 272 340 320 340" fill="none"
+        stroke="#ff6b35" stroke-width="30" stroke-linecap="round"/>
+  <path d="M192 340C240 340 272 172 320 172" fill="none"
+        stroke="#f2b705" stroke-width="30" stroke-linecap="round"/>
+</svg>

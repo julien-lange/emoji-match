@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#2f3542">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Emoji Match</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- The only things a child sees up here are a balloon and their stars. The
+     words being played are the whole of the reading on this screen. -->
+<header id="bar">
+  <span id="mascot" aria-hidden="true">🎈</span>
+  <div id="score" aria-hidden="true"></div>
+</header>
+
+<main id="stage">
+  <div id="cols">
+    <div id="left" class="col"></div>
+    <div id="right" class="col"></div>
+  </div>
+  <canvas id="ink"></canvas>
+  <div id="oops" hidden aria-hidden="true">🙁</div>
+  <div id="cheer" hidden>
+    <div id="cheer-card"><span id="cheer-mark">🎉</span></div>
+  </div>
+</main>
+
+<!-- For you, not for them: which round this is and how it is being generated,
+     beside the two controls that are not theirs either. -->
+<div id="footnote">
+  <div id="howmany" role="group" aria-label="Pairs per round"></div>
+  <p id="info"></p>
+  <button id="wipe" title="Forget all progress and download the app again">reset</button>
+</div>
+
+<footer id="controls">
+  <button id="again" aria-label="Clear the lines" disabled><span>↺</span></button>
+  <button id="next" aria-label="Next round"><span>→</span></button>
+</footer>
+
+<script src="wasm_exec.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

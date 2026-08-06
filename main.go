@@ -1,3 +1,8 @@
+//go:build !(js && wasm)
+
+// The terminal game. pairs.go and round.go are shared with the WebAssembly
+// build in wasm.go, which has a main of its own; everything that needs a real
+// terminal — this file, key.go, term.go, export.go — is fenced off from it.
 package main
 
 import (
@@ -31,7 +36,13 @@ func main() {
 	noColour := flag.Bool("nocolor", false, "turn off colours")
 	big := flag.Bool("big", true, "double-size text and emoji (needs a VT100-compatible terminal)")
 	seed := flag.Int64("seed", 0, "random seed (0 = pick one from the clock)")
+	pairsOut := flag.String("pairs", "", "write the word pool to this file as JSON and exit (for the web app)")
 	flag.Parse()
+
+	if *pairsOut != "" {
+		writePairs(*pairsOut)
+		return
+	}
 
 	if *noColour || os.Getenv("NO_COLOR") != "" {
 		disableColour()
