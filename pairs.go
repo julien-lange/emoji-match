@@ -130,6 +130,44 @@ var stages = []Stage{
 			{"🤗", "hug"},
 		},
 	},
+	{
+		ID:   2,
+		Name: "Stage 2",
+		Detail: "Little Wandle Reception autumn 2 (Phase 2): " +
+			"j v w x, y z zz qu, ch sh th ng nk",
+		Letters: "satpinmdgockeurhbfljvwxyzq",
+		Pairs: []Pair{
+			// v w x y z
+			{"🚐", "van"},
+			{"🐺", "wolf"},
+			{"🦊", "fox"},
+			{"📦", "box"},
+			{"🐂", "ox"},
+			{"😋", "yum"},
+			{"🤐", "zip"},
+			{"⚡", "zap"},
+			{"🐝", "buzz"},
+			// ch
+			{"🍟", "chip"},
+			{"🐤", "chick"},
+			{"💬", "chat"},
+			// sh
+			{"🚢", "ship"},
+			{"🏪", "shop"},
+			{"🐚", "shell"},
+			{"🐟", "fish"},
+			// th
+			{"🛀", "bath"},
+			// ng
+			{"💍", "ring"},
+			{"🎵", "song"},
+			{"💥", "bang"},
+			// nk
+			{"🏦", "bank"},
+			{"😉", "wink"},
+			{"🔗", "link"},
+		},
+	},
 }
 
 // stageByID finds a stage, falling back to the first for an unknown id so a

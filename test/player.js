@@ -6,9 +6,10 @@
 // same rules as the Go generator it stands in for, so it is held to the same
 // checks the wasm suite uses.
 
-const { readPool, loadLogic, checkRound, results } = require('./harness');
+const { readStages, loadLogic, checkRound, results } = require('./harness');
 
-const pool = readPool();
+const stages = readStages();
+const pool = stages[0].pairs;
 const L = loadLogic();
 const r = results('PLAYER CHECKS');
 
@@ -64,6 +65,15 @@ const used = new Set();
 for (let i = 0; i < 200; i++) for (const w of L.fallbackRound(3, rand).words) used.add(w);
 if (used.size < pool.length * 0.9) {
   r.fail(`600 draws only ever used ${used.size} of ${pool.length} pairs`);
+}
+
+for (const st of stages.slice(1)) {
+  L.load(st.pairs);
+  for (const n of [2, 5]) {
+    for (let i = 0; i < 40; i++) {
+      checkRound(L.fallbackRound(n, rand), n, st.pairs, r.fail.bind(r), `stage ${st.id} fallback ${n} #${i}`);
+    }
+  }
 }
 
 r.done(`${pool.length} pairs in the pool; 200 fallback rounds reached ${used.size} of them`);

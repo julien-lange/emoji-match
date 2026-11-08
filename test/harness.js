@@ -10,7 +10,8 @@ const path = require('path');
 const DOCS = path.join(__dirname, '..', 'docs');
 
 const read = (name) => fs.readFileSync(path.join(DOCS, name), 'utf8');
-const readPool = () => JSON.parse(read('pairs.json')).stages[0].pairs;
+const readStages = () => JSON.parse(read('pairs.json')).stages;
+const readPool = (i = 0) => readStages()[i].pairs;
 
 // loadLogic lifts the DOM-free half of app.js — the fallback generator — into a
 // module. Slicing the real file rather than copying it is what keeps these
@@ -77,4 +78,4 @@ function results(label) {
   };
 }
 
-module.exports = { DOCS, read, readPool, loadLogic, checkRound, results };
+module.exports = { DOCS, read, readPool, readStages, loadLogic, checkRound, results };

@@ -6,11 +6,12 @@
 
 const fs = require('fs');
 const path = require('path');
-const { DOCS, readPool, checkRound, results } = require('./harness');
+const { DOCS, readStages, checkRound, results } = require('./harness');
 
 require(path.join(DOCS, 'wasm_exec.js'));   // defines globalThis.Go
 
-const pool = readPool();
+const stages = readStages();
+const pool = stages[0].pairs;
 const r = results('WASM CHECKS');
 
 const go = new Go();
@@ -31,6 +32,18 @@ WebAssembly.instantiate(fs.readFileSync(path.join(DOCS, 'match.wasm')), go.impor
       if (d.error) { r.fail(d.error); continue; }
       checkRound(d, n, pool, r.fail.bind(r), `${n} pairs, seed ${1000 + s}`);
       made++;
+    }
+  }
+
+  // Every stage deals only its own pairs.
+  for (const st of stages) {
+    for (let s = 0; s < 40; s++) {
+      for (const n of [2, 5]) {
+        const d = JSON.parse(globalThis.emojiRound(n, 2000 + s, st.id));
+        if (d.error) { r.fail(d.error); continue; }
+        checkRound(d, n, st.pairs, r.fail.bind(r), `stage ${st.id}, ${n} pairs, seed ${2000 + s}`);
+        made++;
+      }
     }
   }
 

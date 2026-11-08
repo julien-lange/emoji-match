@@ -25,7 +25,7 @@ make serve        # the phone version, at http://localhost:8732/
 
 | Flag | Meaning |
 | --- | --- |
-| `-stage 1` | phonics stage to play (only 1 exists so far) |
+| `-stage 1` | phonics stage to play (1 or 2) |
 | `-n 3` | pairs per round, 2–5 (start at `-n 2` for a first session) |
 | `-big` | double-size text and emoji, on by default; `-big=false` for normal |
 | `-rounds 0` | stop after N rounds; 0 plays until you type `q` |
@@ -169,8 +169,9 @@ for each word. A word with no good picture is left out.
 | Stage | Covers |
 | --- | --- |
 | 1 | Reception autumn 1 (Phase 2): s a t p, i n m d, g o c k, ck e u r, h b f l ff ll ss |
+| 2 | Reception autumn 2 (Phase 2): j v w x, y z zz qu, ch sh th ng nk (no good picture for j or qu, so none yet) |
 
-The web page shows a stage button for every stage in `pairs.json` (one for now),
+The web page shows a stage button for every stage in `pairs.json` (one per stage),
 remembers the choice, and the terminal takes `-stage N`. To add a stage, append
 a `Stage` to `stages` in `pairs.go` and run `make`. Its `Letters` field lists
 every letter its words may use, and `TestStageWordsAreDecodable` fails if a word

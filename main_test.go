@@ -304,3 +304,23 @@ func TestIsQuit(t *testing.T) {
 		}
 	}
 }
+
+// Every stage must be able to deal the biggest round (five distinct first
+// letters), or the largest setting would break on that stage.
+func TestEveryStageCanDealFiveDistinctFirstLetters(t *testing.T) {
+	for _, st := range stages {
+		firsts := map[byte]bool{}
+		for _, p := range st.Pairs {
+			firsts[p.Word[0]] = true
+		}
+		if len(firsts) < 5 {
+			t.Errorf("stage %d has only %d distinct first letters", st.ID, len(firsts))
+		}
+		p := &picker{rng: rand.New(rand.NewSource(5)), pool: st.Pairs}
+		for range 100 {
+			if got := len(p.pick(5)); got != 5 {
+				t.Fatalf("stage %d: picked %d, want 5", st.ID, got)
+			}
+		}
+	}
+}
