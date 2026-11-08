@@ -31,7 +31,9 @@ const STORE_KEY = 'match.progress.v1';
 
 const RECENT = 15;
 
-let pool = [];        // {emoji, word}, from pairs.json
+let stages = [];      // [{id, name, detail, pairs}], from pairs.json
+let stageId = 1;      // the stage being played
+let pool = [];        // {emoji, word} for that stage
 let recent = [];      // indices lately drawn, oldest first
 
 function shuffle(a, rand) {
@@ -100,6 +102,7 @@ const infoEl = document.getElementById('info');
 const nextBtn = document.getElementById('next');
 const againBtn = document.getElementById('again');
 const howMany = document.getElementById('howmany');
+const stagePick = document.getElementById('stages');
 
 // A line for each matched pair, coloured by the word it lands on so two lines
 // crossing are still two lines.
@@ -520,7 +523,7 @@ function hint() {
 function freshRound(n) {
   if (wasmReady && typeof window.emojiRound === 'function') {
     try {
-      const d = JSON.parse(window.emojiRound(n));
+      const d = JSON.parse(window.emojiRound(n, undefined, stageId));
       if (!d.error) return d;
     } catch (_) { /* fall through to the pool */ }
   }
@@ -577,20 +580,55 @@ function paint() {
   scoreEl.textContent = '⭐ ' + stars;
   infoEl.textContent = [
     '#' + roundNo,
+    stageName(),
     round ? round.n + ' pairs' : '—',
     wasmReady ? 'wasm' : 'json',
     // Hard spaces inside each item, ordinary ones between: on a narrow phone
     // the line then breaks between facts rather than through the middle of one.
   ].map((s) => s.replace(/ /g, ' ')).join(' · ');
 
+  for (const b of stagePick.children) b.setAttribute('aria-pressed', String(+b.dataset.id === stageId));
   for (const b of howMany.children) b.setAttribute('aria-pressed', String(+b.textContent === perRound));
+}
+
+/* ---------------------------------------------------------------- stages */
+
+// Each stage is a step of the phonics progression (see pairs.go). The buttons
+// come from pairs.json, so adding a stage there is all it takes.
+
+const stageName = () => (stages.find((s) => s.id === stageId) || {}).name || '';
+
+function setStages(list) {
+  stages = list;
+  if (!stages.some((s) => s.id === stageId)) stageId = stages[0].id;
+  pool = stages.find((s) => s.id === stageId).pairs;
+  stagePick.replaceChildren();
+  for (const s of stages) {
+    const b = document.createElement('button');
+    b.textContent = s.name.replace(/^Stage /, '');
+    b.title = s.name + ': ' + s.detail;
+    b.dataset.id = s.id;
+    b.setAttribute('aria-label', s.name);
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => chooseStage(s.id));
+    stagePick.appendChild(b);
+  }
+}
+
+function chooseStage(id) {
+  if (id === stageId) return;
+  stageId = id;
+  pool = stages.find((s) => s.id === id).pairs;
+  recent = [];
+  roundNo--;                // changing the stage is not a round played
+  nextRound();
 }
 
 /* -------------------------------------------------------------- progress */
 
 function save() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ roundNo, stars, n: perRound }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ roundNo, stars, n: perRound, stage: stageId }));
   } catch (_) { /* private browsing: not worth caring about */ }
 }
 
@@ -683,13 +721,14 @@ const saved = load();
 stars = saved.stars | 0;
 roundNo = saved.roundNo | 0;
 if ([2, 3, 4, 5].includes(saved.n)) perRound = saved.n;
+if (saved.stage) stageId = saved.stage | 0;
 paint();
 
 // Whichever of the two arrives first starts the game.
 fetch(POOL_URL)
   .then((r) => r.json())
   .then((data) => {
-    pool = data.pairs;
+    setStages(data.stages);
     if (!round) nextRound();
   })
   .catch(() => {

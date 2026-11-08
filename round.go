@@ -12,7 +12,8 @@ const recentMemory = 15
 // picker draws rounds from the pool without repeating itself too quickly.
 type picker struct {
 	rng    *rand.Rand
-	recent []int // indices into pairs, oldest first
+	pool   []Pair // the stage being played
+	recent []int  // indices into pool, oldest first
 }
 
 // pick returns n pairs for a round. Words within a round always start with
@@ -29,7 +30,7 @@ func (p *picker) pick(n int) []Pair {
 }
 
 func (p *picker) attempt(n int, avoidRecent bool) ([]Pair, bool) {
-	order := p.rng.Perm(len(pairs))
+	order := p.rng.Perm(len(p.pool))
 	usedFirst := map[byte]bool{}
 
 	var idxs []int
@@ -40,7 +41,7 @@ func (p *picker) attempt(n int, avoidRecent bool) ([]Pair, bool) {
 		if avoidRecent && p.isRecent(i) {
 			continue
 		}
-		first := pairs[i].Word[0]
+		first := p.pool[i].Word[0]
 		if usedFirst[first] {
 			continue
 		}
@@ -53,7 +54,7 @@ func (p *picker) attempt(n int, avoidRecent bool) ([]Pair, bool) {
 
 	chosen := make([]Pair, 0, n)
 	for _, i := range idxs {
-		chosen = append(chosen, pairs[i])
+		chosen = append(chosen, p.pool[i])
 		p.remember(i)
 	}
 	return chosen, true

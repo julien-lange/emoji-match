@@ -4,23 +4,37 @@ package main
 //
 // # Where the words come from
 //
-// They are hand-written for a 4-5 year old, not taken from any dataset. About
-// half of them differ from the emoji's official Unicode name on purpose,
-// because the official names are written for search and screen readers rather
-// than for a child sounding out letters:
+// The words come from the phonics scheme, not from the emoji. The children
+// using this follow Little Wandle Letters and Sounds Revised (the UK DfE
+// validated systematic synthetic phonics programme), so each stage is the set
+// of words a child can decode from the letter-sounds taught so far — cat, bug,
+// bag — and only then do we look for an emoji that shows it. A word with no
+// good picture is dropped rather than the rule bent.
 //
-//	🐶  we say "dog"    Unicode: "dog face"
-//	🐔  we say "hen"    Unicode: "chicken"
-//	🐳  we say "whale"  Unicode: "spouting whale"
-//	⚽  we say "ball"   Unicode: "soccer ball"
-//	🍉  we say "melon"  Unicode: "watermelon"
+// Each Stage records which letters it assumes (Letters), and
+// TestStageWordsAreDecodable fails if a word uses a letter outside them, so a
+// stage can never quietly teach a sound that has not been taught yet.
 //
-// British English where the two differ: 🔦 is "torch", not "flashlight".
+// British English: 🔦 is "torch", not "flashlight".
 //
-// The rule is: one short concrete word a small child already says out loud, so
-// the only new skill being practised is reading it. Avoid compound names
-// ("ice cream"), plurals that fight the picture, and anything over 8 letters —
-// see the note on width below.
+// Keep words to 8 letters or fewer — see the note on width below.
+//
+// # Official sources
+//
+// Tricky words (words that cannot be fully sounded out, so they are not used
+// here: there is no picture of "the") are the official Little Wandle Reception
+// list, Wandle Learning Trust, June 2023:
+//
+//	Phase 2: and* as* be full go has* he her* his* I into is me no of pull
+//	         push put she the to we            (*becomes decodable later)
+//	Phase 3: all are by my pure sure they was you
+//	Phase 4: come do have here like little love one out said says so some
+//	         there today were what when
+//
+// The order in which letters are taught is Little Wandle's Phase 2 sequence
+// (Reception, autumn 1). It was written down from knowledge of the programme,
+// not read from the members-only planning grids, so check Letters against your
+// school's copy before adding a stage.
 //
 // # Where the emoji come from — and how to check a new one
 //
@@ -63,136 +77,68 @@ type Pair struct {
 	Word  string
 }
 
-// pairs is the curated pool every round is drawn from. Keep words unique — the
-// round builder assumes it can identify a pair by its word.
-var pairs = []Pair{
-	// ---- animals ----
-	{"🐶", "dog"},
-	{"🐱", "cat"},
-	{"🐷", "pig"},
-	{"🐮", "cow"},
-	{"🐭", "mouse"},
-	{"🐔", "hen"},
-	{"🐝", "bee"},
-	{"🐟", "fish"},
-	{"🐸", "frog"},
-	{"🦆", "duck"},
-	{"🐑", "sheep"},
-	{"🐴", "horse"},
-	{"🐰", "rabbit"},
-	{"🦊", "fox"},
-	{"🐻", "bear"},
-	{"🦁", "lion"},
-	{"🐯", "tiger"},
-	{"🐘", "elephant"},
-	{"🐍", "snake"},
-	{"🐌", "snail"},
-	{"🐛", "bug"},
-	{"🐜", "ant"},
-	{"🐧", "penguin"},
-	{"🦉", "owl"},
-	{"🐢", "turtle"},
-	{"🐒", "monkey"},
-	{"🦒", "giraffe"},
-	{"🐳", "whale"},
-	{"🦈", "shark"},
-	{"🦓", "zebra"},
-	{"🐐", "goat"},
-	{"🦜", "parrot"},
-	{"🐨", "koala"},
-	{"🐼", "panda"},
+// Stage is one step of the phonics progression. Later stages add graphemes
+// (sh, ch, ai, ee ...) and the words that use them.
+type Stage struct {
+	ID      int
+	Name    string // short, for a button
+	Detail  string // for the grown-up: what has been taught by this point
+	Letters string // every letter a word in this stage may use
+	Pairs   []Pair
+}
 
-	// ---- food ----
-	{"🍎", "apple"},
-	{"🍌", "banana"},
-	{"🍇", "grapes"},
-	{"🍊", "orange"},
-	{"🍐", "pear"},
-	{"🍋", "lemon"},
-	{"🥕", "carrot"},
-	{"🌽", "corn"},
-	{"🍞", "bread"},
-	{"🧀", "cheese"},
-	{"🥚", "egg"},
-	{"🍰", "cake"},
-	{"🍪", "cookie"},
-	{"🍕", "pizza"},
-	{"🥛", "milk"},
-	{"🍿", "popcorn"},
-	{"🍩", "donut"},
-	{"🥔", "potato"},
-	{"🍅", "tomato"},
-	{"🥦", "broccoli"},
-	{"🍯", "honey"},
-	{"🥜", "peanut"},
-	{"🍉", "melon"},
-	{"🍒", "cherry"},
-	{"🧅", "onion"},
+// stages is the whole progression, in order. Only stage 1 exists so far. To
+// add one, append here: the UIs, the JSON and the tests all pick it up.
+var stages = []Stage{
+	{
+		ID:   1,
+		Name: "Stage 1",
+		Detail: "Little Wandle Reception autumn 1 (Phase 2): " +
+			"s a t p, i n m d, g o c k, ck e u r, h b f l ff ll ss",
+		Letters: "satpinmdgockeurhbfl",
+		Pairs: []Pair{
+			// short a
+			{"🐱", "cat"},
+			{"🎒", "bag"},
+			{"🧢", "cap"},
+			{"👒", "hat"},
+			{"🐀", "rat"},
+			{"🦇", "bat"},
+			{"🐜", "ant"},
+			// short e
+			{"🐔", "hen"},
+			{"🦵", "leg"},
+			{"🧝", "elf"},
+			{"🔔", "bell"},
+			// short i
+			{"🐷", "pig"},
+			{"📌", "pin"},
+			{"💋", "kiss"},
+			// short o
+			{"🐶", "dog"},
+			{"🪵", "log"},
+			{"🍲", "pot"},
+			{"🧦", "sock"},
+			// short u
+			{"🐛", "bug"},
+			{"🚌", "bus"},
+			{"🌞", "sun"},
+			{"☕", "cup"},
+			{"🥜", "nut"},
+			{"🦆", "duck"},
+			{"🛁", "tub"},
+			{"🤗", "hug"},
+		},
+	},
+}
 
-	// ---- things ----
-	{"🚗", "car"},
-	{"🚌", "bus"},
-	{"🚲", "bike"},
-	{"🚂", "train"},
-	{"🚀", "rocket"},
-	{"🚚", "truck"},
-	{"🛴", "scooter"},
-	{"⛵", "boat"},
-	{"⚽", "ball"},
-	{"🪑", "chair"},
-	{"🧦", "sock"},
-	{"👒", "hat"},
-	{"👞", "shoe"},
-	{"🧤", "glove"},
-	{"🔑", "key"},
-	{"📖", "book"},
-	{"🎈", "balloon"},
-	{"🎁", "gift"},
-	{"🪁", "kite"},
-	{"🧸", "teddy"},
-	{"🥁", "drum"},
-	{"🎸", "guitar"},
-	{"🔔", "bell"},
-	{"🔦", "torch"},
-	{"🧹", "broom"},
-	{"🪣", "bucket"},
-	{"🥄", "spoon"},
-	{"🧢", "cap"},
-	{"👕", "shirt"},
-	{"🧥", "coat"},
-	{"👗", "dress"},
-	{"🎒", "bag"},
-	{"⌚", "watch"},
-	{"📱", "phone"},
-	{"💻", "laptop"},
-
-	// ---- nature ----
-	{"🌳", "tree"},
-	{"🌸", "flower"},
-	{"🍁", "leaf"},
-	{"🌙", "moon"},
-	{"⭐", "star"},
-	{"🌞", "sun"},
-	{"🌈", "rainbow"},
-	{"🔥", "fire"},
-	{"💧", "drop"},
-	{"⛄", "snowman"},
-	{"🌊", "wave"},
-	{"🏠", "house"},
-	{"🪨", "rock"},
-	{"🐚", "shell"},
-	{"🌵", "cactus"},
-	{"🍄", "mushroom"},
-	{"🌱", "plant"},
-	{"🪵", "log"},
-
-	// ---- body ----
-	{"👀", "eyes"},
-	{"👃", "nose"},
-	{"👂", "ear"},
-	{"👄", "lips"},
-	{"🦶", "foot"},
-	{"✋", "hand"},
-	{"🦷", "tooth"},
-	{"💛", "heart"},
+// stageByID finds a stage, falling back to the first for an unknown id so a
+// bad request still gets a playable round.
+func stageByID(id int) *Stage {
+	for i := range stages {
+		if stages[i].ID == id {
+			return &stages[i]
+		}
+	}
+	return &stages[0]
 }

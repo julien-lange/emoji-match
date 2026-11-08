@@ -10,7 +10,7 @@ const path = require('path');
 const DOCS = path.join(__dirname, '..', 'docs');
 
 const read = (name) => fs.readFileSync(path.join(DOCS, name), 'utf8');
-const readPool = () => JSON.parse(read('pairs.json')).pairs;
+const readPool = () => JSON.parse(read('pairs.json')).stages[0].pairs;
 
 // loadLogic lifts the DOM-free half of app.js — the fallback generator — into a
 // module. Slicing the real file rather than copying it is what keeps these

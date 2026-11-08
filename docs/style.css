@@ -221,8 +221,8 @@ body {
   padding: 6px 10px 0;
 }
 
-#howmany { display: flex; gap: 3px; }
-#howmany button {
+#howmany, #stages { display: flex; gap: 3px; }
+#howmany button, #stages button {
   width: 20px; height: 18px;
   padding: 0;
   border: 1px solid rgba(251, 247, 238, .18);
@@ -231,7 +231,7 @@ body {
   color: rgba(251, 247, 238, .38);
   font: 500 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-#howmany button[aria-pressed="true"] { background: rgba(251, 247, 238, .22); color: var(--paper); }
+#howmany button[aria-pressed="true"], #stages button[aria-pressed="true"] { background: rgba(251, 247, 238, .22); color: var(--paper); }
 
 #info {
   flex: 1;

@@ -67,19 +67,37 @@ func TestParseGuess(t *testing.T) {
 // Every emoji in the pool must be double-width, or the columns stop lining up.
 // This catches emoji that need a U+FE0F variation selector to be colourful.
 func TestPairsAreWellFormed(t *testing.T) {
-	seen := map[string]bool{}
-	for _, p := range pairs {
-		if w := cellWidth(p.Emoji); w != 2 {
-			t.Errorf("emoji %q for %q is %d columns wide, want 2", p.Emoji, p.Word, w)
+	for _, st := range stages {
+		seen := map[string]bool{}
+		for _, p := range st.Pairs {
+			if w := cellWidth(p.Emoji); w != 2 {
+				t.Errorf("emoji %q for %q is %d columns wide, want 2", p.Emoji, p.Word, w)
+			}
+			if seen[p.Word] {
+				t.Errorf("stage %d: duplicate word %q", st.ID, p.Word)
+			}
+			seen[p.Word] = true
+			for _, r := range p.Word {
+				if r < 'a' || r > 'z' {
+					t.Errorf("word %q should be a single lower-case word", p.Word)
+					break
+				}
+			}
 		}
-		if seen[p.Word] {
-			t.Errorf("duplicate word %q", p.Word)
+		if len(st.Pairs) < 10 {
+			t.Errorf("stage %d has only %d pairs", st.ID, len(st.Pairs))
 		}
-		seen[p.Word] = true
-		for _, r := range p.Word {
-			if r < 'a' || r > 'z' {
-				t.Errorf("word %q should be a single lower-case word", p.Word)
-				break
+	}
+}
+
+// A stage must not use a letter-sound that has not been taught by then.
+func TestStageWordsAreDecodable(t *testing.T) {
+	for _, st := range stages {
+		for _, p := range st.Pairs {
+			for _, r := range p.Word {
+				if !strings.ContainsRune(st.Letters, r) {
+					t.Errorf("stage %d: %q uses %q, which is not taught yet", st.ID, p.Word, string(r))
+				}
 			}
 		}
 	}
@@ -87,7 +105,7 @@ func TestPairsAreWellFormed(t *testing.T) {
 
 func TestPickGivesDistinctFirstLetters(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
-	p := &picker{rng: rng}
+	p := &picker{rng: rng, pool: stages[0].Pairs}
 	for range 200 {
 		chosen := p.pick(3)
 		if len(chosen) != 3 {
@@ -105,7 +123,7 @@ func TestPickGivesDistinctFirstLetters(t *testing.T) {
 
 func TestRoundMappingSurvivesShuffling(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
-	p := &picker{rng: rng}
+	p := &picker{rng: rng, pool: stages[0].Pairs}
 	for range 200 {
 		r := newRound(rng, p.pick(3))
 		for i, e := range r.emojis {
@@ -119,7 +137,7 @@ func TestRoundMappingSurvivesShuffling(t *testing.T) {
 
 func TestRoundIsNotTheIdentityLayout(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
-	p := &picker{rng: rng}
+	p := &picker{rng: rng, pool: stages[0].Pairs}
 	identity := 0
 	for range 200 {
 		r := newRound(rng, p.pick(3))

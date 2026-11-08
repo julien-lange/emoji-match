@@ -16,18 +16,30 @@ import (
 // tapping a home-screen icon on a train should not be met with a blank page
 // because it failed to arrive. So the pool travels beside it as plain JSON too,
 // and the page carries a small fallback picker of its own for that one case.
-// This is what writes the JSON, straight from the pairs slice.
+// This is what writes the JSON, straight from the stages slice.
 func writePairs(dest string) {
 	type wirePair struct {
 		Emoji string `json:"emoji"`
 		Word  string `json:"word"`
 	}
+	type wireStage struct {
+		ID     int        `json:"id"`
+		Name   string     `json:"name"`
+		Detail string     `json:"detail"`
+		Pairs  []wirePair `json:"pairs"`
+	}
 
-	out := struct {
-		Pairs []wirePair `json:"pairs"`
-	}{Pairs: make([]wirePair, len(pairs))}
-	for i, p := range pairs {
-		out.Pairs[i] = wirePair{Emoji: p.Emoji, Word: p.Word}
+	var out struct {
+		Stages []wireStage `json:"stages"`
+	}
+	total := 0
+	for _, st := range stages {
+		ws := wireStage{ID: st.ID, Name: st.Name, Detail: st.Detail}
+		for _, p := range st.Pairs {
+			ws.Pairs = append(ws.Pairs, wirePair{Emoji: p.Emoji, Word: p.Word})
+		}
+		total += len(ws.Pairs)
+		out.Stages = append(out.Stages, ws)
 	}
 
 	b, err := json.Marshal(out)
@@ -40,5 +52,5 @@ func writePairs(dest string) {
 		fmt.Fprintln(os.Stderr, "emoji-match:", err)
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "emoji-match: wrote %s, %d pairs\n", dest, len(pairs))
+	fmt.Fprintf(os.Stderr, "emoji-match: wrote %s, %d stages, %d pairs\n", dest, len(stages), total)
 }

@@ -17,7 +17,19 @@ import (
 // One picker for the life of the page. The "recently seen" memory is what stops
 // 🐶 coming back two rounds later, and it only means anything if it survives
 // between calls — a picker made fresh each time would remember nothing.
-var session = &picker{rng: rand.New(rand.NewSource(time.Now().UnixNano()))}
+var (
+	sessionRng = rand.New(rand.NewSource(time.Now().UnixNano()))
+	sessions   = map[int]*picker{} // one per stage, made on first use
+)
+
+func sessionFor(st *Stage) *picker {
+	if p, ok := sessions[st.ID]; ok {
+		return p
+	}
+	p := &picker{rng: sessionRng, pool: st.Pairs}
+	sessions[st.ID] = p
+	return p
+}
 
 // wireRound is one puzzle as the page reads it. Emojis and words are in two
 // independent orders, exactly as in round.go, and Answer carries the mapping
@@ -39,7 +51,7 @@ func main() {
 	select {} // syscall/js callbacks only run while main is alive
 }
 
-// generate implements window.emojiRound(n, [seed]) and returns one round as a
+// generate implements window.emojiRound(n, [seed], [stage]) and returns one round as a
 // JSON string.
 //
 // Without a seed it draws from the session picker, which is what the page wants:
@@ -58,10 +70,16 @@ func generate(_ js.Value, args []js.Value) any {
 	}
 	n = max(2, min(n, 5))
 
-	p, rng := session, session.rng
+	stageID := 1
+	if len(args) > 2 && args[2].Type() == js.TypeNumber {
+		stageID = args[2].Int()
+	}
+	st := stageByID(stageID)
+
+	p, rng := sessionFor(st), sessionRng
 	if len(args) > 1 && args[1].Truthy() {
 		rng = rand.New(rand.NewSource(int64(args[1].Float())))
-		p = &picker{rng: rng}
+		p = &picker{rng: rng, pool: st.Pairs}
 	}
 
 	r := newRound(rng, p.pick(n))

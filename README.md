@@ -25,6 +25,7 @@ make serve        # the phone version, at http://localhost:8732/
 
 | Flag | Meaning |
 | --- | --- |
+| `-stage 1` | phonics stage to play (only 1 exists so far) |
 | `-n 3` | pairs per round, 2–5 (start at `-n 2` for a first session) |
 | `-big` | double-size text and emoji, on by default; `-big=false` for normal |
 | `-rounds 0` | stop after N rounds; 0 plays until you type `q` |
@@ -70,7 +71,7 @@ still waiting, which is the whole of the tutorial.
 `GOOS=js GOARCH=wasm`. It exports one function:
 
 ```js
-window.emojiRound(n, seed)   // -> JSON: {n, emojis, words, answer}
+window.emojiRound(n, seed, stage)   // -> JSON: {n, emojis, words, answer}
 ```
 
 `answer[i]` is where emoji `i`'s word sits in `words`, so the page can mark an
@@ -157,13 +158,35 @@ line, so the child presses a key and then ENTER.
 The running ⭐ count in the header and the end-of-session summary are the only
 other places the game keeps score.
 
+## Stages and words
+
+The words are driven by the UK phonics progression, not by what makes a nice
+emoji. The target is **Little Wandle Letters and Sounds Revised**: each *stage*
+in `pairs.go` is the set of words a Reception child can decode from the
+letter-sounds taught so far (cat, bug, bag, sock), and an emoji is then found
+for each word. A word with no good picture is left out.
+
+| Stage | Covers |
+| --- | --- |
+| 1 | Reception autumn 1 (Phase 2): s a t p, i n m d, g o c k, ck e u r, h b f l ff ll ss |
+
+The web page shows a stage button for every stage in `pairs.json` (one for now),
+remembers the choice, and the terminal takes `-stage N`. To add a stage, append
+a `Stage` to `stages` in `pairs.go` and run `make`. Its `Letters` field lists
+every letter its words may use, and `TestStageWordsAreDecodable` fails if a word
+needs a sound that has not been taught.
+
+Tricky words (the, said, was …) cannot be sounded out and have no picture, so
+they are not in the game. The official Little Wandle Reception list is recorded
+in the comment at the top of `pairs.go`. The letter order was written from
+knowledge of the programme rather than the members-only planning grids, so
+check it against your school's copy before adding stages.
+
 ## Adding pairs
 
 Everything lives in `pairs.go`, whose doc comment carries the full reference:
-where the words come from (hand-written for a small child, deliberately not the
-official Unicode names — 🐔 is "hen" here, "chicken" to Unicode), the Unicode
-data files to check a new emoji against, and a one-line `curl | awk` that lists
-every emoji safe to use. Two rules the tests enforce:
+the Unicode data files to check a new emoji against, and a one-line
+`curl | awk` that lists every emoji safe to use. Two rules the tests enforce:
 
 - **Words are unique and lower-case** — a round identifies a pair by its word.
 - **Emoji must render double-width.** Only use emoji that are colourful on

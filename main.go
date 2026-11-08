@@ -36,6 +36,7 @@ func main() {
 	noColour := flag.Bool("nocolor", false, "turn off colours")
 	big := flag.Bool("big", true, "double-size text and emoji (needs a VT100-compatible terminal)")
 	seed := flag.Int64("seed", 0, "random seed (0 = pick one from the clock)")
+	stageNo := flag.Int("stage", 1, "phonics stage to play (see the README)")
 	pairsOut := flag.String("pairs", "", "write the word pool to this file as JSON and exit (for the web app)")
 	flag.Parse()
 
@@ -59,7 +60,7 @@ func main() {
 	g := &game{
 		in:    bufio.NewReader(os.Stdin),
 		rng:   rng,
-		pick:  &picker{rng: rng},
+		pick:  &picker{rng: rng, pool: stageByID(*stageNo).Pairs},
 		perRd: *n,
 		maxRd: *rounds,
 	}

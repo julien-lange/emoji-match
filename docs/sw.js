@@ -2,7 +2,7 @@
 // car, on a train, wherever. Bump VERSION whenever you republish a new wasm
 // build or a changed pool, or phones will happily keep serving yesterday's.
 
-const VERSION = 'match-v1';
+const VERSION = 'match-v2';
 
 // Everything the game needs to play with no signal at all. Taken as a batch:
 // addAll rejects the lot if one file fails to arrive, which fails the install,
